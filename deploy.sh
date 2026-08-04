@@ -1,3 +1,4 @@
+
 #!/bin/bash
 set -e
 
@@ -6,12 +7,14 @@ RESOURCE_GROUP="rg-verdantpay-iam"
 LOCATION="southafricanorth"
 VNET_NAME="vnet-verdantpay"
 SUBSCRIPTION_ID="f6a1c9ee-95ed-4bbb-9f16-e72d2dad5499"
+
 WEBADMINS_GROUP="WebAdmins"
+INTERNS_GROUP="Interns"
 DBADMINS_GROUP="DBAdmins"
 
 echo "Starting Verdant Pay IAM deployment..."
 
- # ==== Resource Group + Network ====
+# ==== Resource Group + Network ====
 echo "Creating resource group..."
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
@@ -34,28 +37,45 @@ az network vnet subnet create \
 echo "Creating WebAdmins group..."
 az ad group create --display-name $WEBADMINS_GROUP --mail-nickname $WEBADMINS_GROUP
 
+echo "Creating Interns group..."
+az ad group create --display-name $INTERNS_GROUP --mail-nickname $INTERNS_GROUP
+
 echo "Creating DBAdmins group..."
 az ad group create --display-name $DBADMINS_GROUP --mail-nickname $DBADMINS_GROUP
 
-# ==== Test User Provisioning ====
+# ==== Test User Provisioning (2 Intern Users) ====
 DOMAIN=$(az rest --method get --url "https://graph.microsoft.com/v1.0/domains" --query "value[0].id" -o tsv)
 
-echo "Creating intern test user..."
-az ad user create --display-name "InternTestUser" --user-principal-name "internuser@$DOMAIN" --password TempPass123.ChangeMe --force-change-password-next-sign-in true
+echo "Creating intern test user 1..."
+az ad user create --display-name "InternTestUser1" --user-principal-name "internuser1@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
 
-INTERN_ID=$(az ad user show --id "internuser@$DOMAIN" --query id -o tsv)
-az ad group member add --group $WEBADMINS_GROUP --member-id $INTERN_ID
-echo "Intern user added to $WEBADMINS_GROUP."
+echo "Creating intern test user 2..."
+az ad user create --display-name "InternTestUser2" --user-principal-name "internuser2@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
+
+INTERN1_ID=$(az ad user show --id "internuser1@$DOMAIN" --query id -o tsv)
+INTERN2_ID=$(az ad user show --id "internuser2@$DOMAIN" --query id -o tsv)
+
+echo "Adding intern users to $INTERNS_GROUP..."
+az ad group member add --group $INTERNS_GROUP --member-id $INTERN1_ID
+az ad group member add --group $INTERNS_GROUP --member-id $INTERN2_ID
+echo "Intern users successfully added to $INTERNS_GROUP."
 
 # ==== Role Assignments ====
 WEBADMINS_ID=$(az ad group show --group $WEBADMINS_GROUP --query id -o tsv)
+INTERNS_ID=$(az ad group show --group $INTERNS_GROUP --query id -o tsv)
 DBADMINS_ID=$(az ad group show --group $DBADMINS_GROUP --query id -o tsv)
 
-echo "Assigning Contributor to WebAdmins on Web subnet..."
+echo "Assigning Contributor to WebAdmins on Resource Group..."
 az role assignment create \
   --assignee $WEBADMINS_ID \
   --role "Contributor" \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/$VNET_NAME/subnets/snet-web"
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+
+echo "Assigning Contributor to Interns group on VNet..."
+az role assignment create \
+  --assignee $INTERNS_ID \
+  --role "Contributor" \
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/$VNET_NAME"
 
 echo "Assigning Reader to DBAdmins on VNet..."
 az role assignment create \
@@ -78,7 +98,13 @@ offboard_user() {
   echo "Checking role assignments..."
   az role assignment list --assignee $USER_ID -o table
 
-  echo "Removing all role assignments for $USER_UPN..."
+  echo "Removing user from all Azure AD groups..."
+  GROUPS=$(az ad user get-member-groups --id $USER_ID --query "[].id" -o tsv)
+  for GROUP_ID in $GROUPS; do
+    az ad group member remove --group $GROUP_ID --member-id $USER_ID
+  done
+
+  echo "Removing direct role assignments for $USER_UPN..."
   az role assignment delete --assignee $USER_ID
 
   echo "Revoking active sessions..."
@@ -92,5 +118,3 @@ offboard_user() {
 # offboard_user "departeduser@victoryokpoyooutlook.onmicrosoft.com"
 
 echo "Script finished."
-
-
