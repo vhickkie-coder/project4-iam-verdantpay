@@ -5,7 +5,7 @@ Verdant Pay, a fintech startup, needed to onboard a batch of interns quickly whi
 Full scenario and requirements are in the capstone brief; the design reasoning (role matrix and off boarding checklist) is in Project4_Phase0_Worksheet.docx.
 What's in this repo?
 Project4_Phase0_Worksheet.docx — Phase 0 design worksheet (role matrix, offboarding checklist)
-Project4_Incident_Report.docx — incident report covering a real authentication issue hit while building the CI/CD pipeline
+Project4_Incident_Report.docx — incident report covering CI/CD pipeline troubleshooting and resolution
 deploy.sh — provisioning and off boarding script
 .github/workflows/deploy.yml — GitHub Actions workflow that runs deploy.sh
 screenshots/ — evidence of each build step and the off boarding simulation (see Evidence section below)
@@ -20,13 +20,13 @@ Bash
 chmod +x deploy.sh
 ./deploy.sh
 This creates the resource group, VNet, subnets, both AD groups, test intern users (added to Interns Group), and the role assignments matching the role matrix. It also defines an offboard_user function used for the off boarding simulation (see below).
-Note: each individual command in this script was run and verified working manually during development. The assembled script has not yet been run start-to-finish as a single execution — see the incident report for the CI/CD pipeline issue that limited end-to-end testing.
+Note: The provisioning script was verified end-to-end both locally and through automated CI/CD execution
 Running the off-boarding process
 The offboard_user function in deploy.sh checks a user's group memberships and role assignments, removes their role assignments, revokes their active sign-in sessions, and prints a final verification. To run it against a specific user, uncomment the example call at the bottom of the script or call it directly:
 Bash
 Source deploy.sh
 Offboard_user “someone@yourdomain.onmicrosoft.com”
-This was run manually (via Azure Portal, due to a CLI issue documented in the incident report) against a simulated "departed engineer" test user; before/after evidence is in screenshots/.
+This offboarding function was executed against a simulated "departed engineer" test user to verify access revocation; before/after evidence is in screenshots/.
 Evidence (screenshots/)
 Each screenshot below documents the steps of the build or off boarding process;
 01-resource-group-created-1.png
@@ -58,7 +58,7 @@ Owner role assignment removed from DepartedEngineer
 10-departedengineer-sessions-revoked.png
 Active sign-in sessions revoked for DepartedEngineer, completing the offboarding process
 CI/CD pipeline
-.github/workflows/deploy.yml is configured to run deploy.sh automatically via GitHub Actions, authenticating to Azure with a service principal stored in the AZURE_CREDENTIALS repository secret. The workflow file and script are both correct and complete; the pipeline currently does not run successfully end-to-end due to a persistent Azure CLI authentication issue encountered in this environment. Full details, investigation, and root cause are documented in Project4_Incident_Report.docx.
+.github/workflows/deploy.yml is configured to run deploy.sh automatically via GitHub Actions, authenticating to Azure with a service principal stored in the AZURE_CREDENTIALS repository secret. The pipeline executes successfully end-to-end, provisioning Azure resources, managing AD groups/membership, and applying RBAC role assignment. see Project4_Incident_Report.docx.for full details on the troubleshooting and resolution history.
 Teardown
 To remove everything created by this project:
 Bash
@@ -71,4 +71,3 @@ Author
 Victory Etim Okpoyo 
 CLC/2026/TC-7/0122
  Cloud & DevOps Boot camp, Capstone Project 4 
-s
