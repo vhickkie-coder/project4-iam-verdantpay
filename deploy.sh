@@ -47,10 +47,18 @@ az ad group create --display-name $DBADMINS_GROUP --mail-nickname $DBADMINS_GROU
 DOMAIN=$(az rest --method get --url "https://graph.microsoft.com/v1.0/domains" --query "value[0].id" -o tsv)
 
 echo "Creating intern test user 1..."
-az ad user create --display-name "InternTestUser1" --user-principal-name "internuser1@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
+if az ad user show --id "internuser1@$DOMAIN" &> /dev/null; then
+  echo "InternTestUser1 already exists, skipping creation."
+else
+  az ad user create --display-name "InternTestUser1" --user-principal-name "internuser1@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
+fi
 
 echo "Creating intern test user 2..."
-az ad user create --display-name "InternTestUser2" --user-principal-name "internuser2@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
+if az ad user show --id "internuser2@$DOMAIN" &> /dev/null; then
+  echo "InternTestUser2 already exists, skipping creation."
+else
+  az ad user create --display-name "InternTestUser2" --user-principal-name "internuser2@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
+fi
 
 sleep 15
 
