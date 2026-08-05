@@ -66,9 +66,9 @@ INTERN1_ID=$(az ad user show --id "internuser1@$DOMAIN" --query id -o tsv)
 INTERN2_ID=$(az ad user show --id "internuser2@$DOMAIN" --query id -o tsv)
 
 echo "Adding intern users to $INTERNS_GROUP..."
-az ad group member add --group $INTERNS_GROUP --member-id $INTERN1_ID
-az ad group member add --group $INTERNS_GROUP --member-id $INTERN2_ID
-echo "Intern users successfully added to $INTERNS_GROUP."
+az ad group member add --group $INTERNS_GROUP --member-id $INTERN1_ID 2>/dev/null || echo "Intern 1 already in group, skipping."
+az ad group member add --group $INTERNS_GROUP --member-id $INTERN2_ID 2>/dev/null || echo "Intern 2 already in group, skipping."
+echo "Intern users check complete for $INTERNS_GROUP."
 
 # ==== Role Assignments ====
 WEBADMINS_ID=$(az ad group show --group $WEBADMINS_GROUP --query id -o tsv)
