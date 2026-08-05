@@ -52,6 +52,8 @@ az ad user create --display-name "InternTestUser1" --user-principal-name "intern
 echo "Creating intern test user 2..."
 az ad user create --display-name "InternTestUser2" --user-principal-name "internuser2@$DOMAIN" --password TempPass123X9Zq --force-change-password-next-sign-in true
 
+sleep 15
+
 INTERN1_ID=$(az ad user show --id "internuser1@$DOMAIN" --query id -o tsv)
 INTERN2_ID=$(az ad user show --id "internuser2@$DOMAIN" --query id -o tsv)
 
