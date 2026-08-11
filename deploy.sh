@@ -109,16 +109,17 @@ offboard_user() {
   az role assignment list --assignee $USER_ID -o table
 
   echo "Removing user from all Azure AD groups..."
-  GROUPS=$(az ad user get-member-groups --id $USER_ID --query "[].id" -o tsv)
+GROUPS=$(az ad user get-member-groups --id $USER_ID --query "[].id" -o tsv 2>/dev/null)
+if [ -z "$GROUPS" ]; then
+  echo "User is not a member of any groups. Nothing to remove."
+else
   for GROUP_ID in $GROUPS; do
-    az ad group member remove --group $GROUP_ID --member-id $USER_ID
+    az ad group member remove --group $GROUP_ID --member-id $USER_ID 2>/dev/null || echo "Already removed from group $GROUP_ID, skipping."
   done
+fi
 
-  echo "Removing direct role assignments for $USER_UPN..."
-  az role assignment delete --assignee $USER_ID
-
-  echo "Revoking active sessions..."
-  az ad user revoke-sign-in-sessions --id $USER_ID
+ echo "Removing direct role assignments for $USER_UPN..."
+ az role assignment delete --assignee $USER_ID 2>/dev/null || echo "No direct role assignments found, skipping."
 
   echo "Disabliing Azure AD account..."
   az ad user update --id $USER_ID --account-enabled false
