@@ -75,24 +75,28 @@ WEBADMINS_ID=$(az ad group show --group $WEBADMINS_GROUP --query id -o tsv)
 INTERNS_ID=$(az ad group show --group $INTERNS_GROUP --query id -o tsv)
 DBADMINS_ID=$(az ad group show --group $DBADMINS_GROUP --query id -o tsv)
 
-echo "Assigning Contributor to WebAdmins on Resource Group..."
-az role assignment create \
-  --assignee $WEBADMINS_ID \
-  --role "Contributor" \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+# Subnet Resource IDs
+WEB_SUBNET_ID="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/$VNET_NAME/subnets/snet-web"
+DB_SUBNET_ID="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/$VNET_NAME/subnets/snet-db"
 
-echo "Assigning Contributor to Interns group on VNet..."
+echo "Assigning Contributor to WebAdmins on Web Subnet..."
 az role assignment create \
-  --assignee $INTERNS_ID \
+  --assignee "$WEBADMINS_ID" \
   --role "Contributor" \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/$VNET_NAME"
+  --scope "$WEB_SUBNET_ID"
 
-echo "Assigning Reader to DBAdmins on VNet..."
+echo "Assigning Contributor to Interns group on Web Subnet..."
 az role assignment create \
-  --assignee $DBADMINS_ID \
+  --assignee "$INTERNS_ID" \
+  --role "Contributor" \
+  --scope "$WEB_SUBNET_ID"
+
+echo "Assigning Reader to DBAdmins on DB Subnet..."
+az role assignment create \
+  --assignee "$DBADMINS_ID" \
   --role "Reader" \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/$VNET_NAME"
-
+  --scope "$DB_SUBNET_ID"
+  
 echo "Deployment complete."
 
 # ==== Offboarding Function ====
