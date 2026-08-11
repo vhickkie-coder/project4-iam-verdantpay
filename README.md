@@ -1,73 +1,55 @@
-Project 4: IAM & Access Governance Automation 
- Verdant Pay
+ Project 4: IAM & Access Governance Automation — Verdant Pay
+
 Overview
-Verdant Pay, a fintech startup, needed to onboard a batch of interns quickly while passing a least-privilege compliance audit, and needed to guarantee that a departed engineer's elevated access was fully and verifiably revoked. This project designs and builds that access model on Azure: scoped role-based groups for interns and database admins, a scripted grant/revoke process, and a tested off boarding simulation with before/after evidence.
-Full scenario and requirements are in the capstone brief; the design reasoning (role matrix and off boarding checklist) is in Project4_Phase0_Worksheet.docx.
-What's in this repo?
-Project4_Phase0_Worksheet.docx — Phase 0 design worksheet (role matrix, offboarding checklist)
-Project4_Incident_Report.docx — incident report covering CI/CD pipeline troubleshooting and resolution
-deploy.sh — provisioning and off boarding script
-.github/workflows/deploy.yml — GitHub Actions workflow that runs deploy.sh
-screenshots/ — evidence of each build step and the off boarding simulation (see Evidence section below)
-Architecture 
-Resource group: rg-verdantpay-iam
-VNet vnet-verdantpay (10.20.0.0/16) with two subnets: snet-web (10.20.1.0/24) and snet-db (10.20.2.0/24)
-Azure AD groups & RBAC Scopes: WebAdmins (Contributor on the resource group), Interns Group (Contributor on the Vnet) and DBAdmins (Reader on the VNet)
-Note on Scope: Azure IAM does not support direct role assignment on individual subnet resources. Therefore, Interns Group and DBAdmins were assigned at the Vnet level while network access controls non-web resources. 
-Setup; running deploy.sh manually
-Prerequisites: Azure CLI installed and logged in (az login), with Contributor or Owner rights on the target subscription.
-Bash 
-chmod +x deploy.sh
+A fintech startup, Verdant Pay, needed to onboard a batch of interns for a 6-week sprint with immediate, frictionless access while maintaining strict least-privilege compliance for an upcoming audit. Additionally, the company required a verifiable, scripted offboarding process to guarantee that a departed engineer’s elevated access was fully revoked.
+
+This project designs, automates, and validates:
+* Azure Resource Group and VNet/Subnet segmentation.
+* Scoped Role-Based Access Control (RBAC) groups for Web and Database administrators.
+* An automated deployment script (`deploy.sh`) handling provisioning and offboarding.
+* A GitHub Actions CI/CD pipeline enforcing automated execution.
+
+
+Repository Structure
+```text
+├── .github/workflows/
+│   └── deploy.yml          # GitHub Actions CI/CD pipeline configuration
+├── screenshots/            # Evidence logs for build steps and offboarding simulation
+├── deploy.sh               # End-to-end provisioning and offboarding script
+├── Project4_Phase0_Worksheet-2.docx  # Phase 0 design worksheet (Role matrix & checklist)
+├── Project4_Incident_Report-1.docx   # Incident report detailing troubleshooting & resolution
+└── README.md               # Project documentation
+Architecture & Design Summary
+•	Resource Group: rg-verdantpay-iam
+•	Region: South Africa North
+•	Virtual Network: vnet-verdantpay (10.20.0.0/16) 
+o	Web Subnet (snet-web): 10.20.1.0/24 (Assigned to WebAdmins and Interns)
+o	DB Subnet (snet-db): 10.20.2.0/24 (Assigned to DBAdmins)
+Note on Scope: Because Azure IAM does not support direct role assignments on individual subnet resources, roles were scoped at the VNet level with targeted permissions matching the Phase 0 role matrix, preventing cross-tier access into database security zones. Time-bound expiry for the Interns role is enforced procedurally via offboarding at sprint end.
+
+Setup & Execution Instructions
+Prerequisites
+o	Azure CLI installed and authenticated (az login) with Contributor or Owner privileges on your target subscription.
+o	Bash shell environment (Linux, macOS, or Git Bash).
+Local Execution
+1.	Clone the repository 
+Git clone [https://github.com/vhkkie-coder/project4-iam-verdantpay.git](https://github.com/vhkkie-coder/project4-iam-verdantpay.git)
+Cd project4-iam-verdantpay
+2.	Grant execution permission to the script
+Chmod +x deploy.sh
+3.	Run the deployment Script 
 ./deploy.sh
-This creates the resource group, VNet, subnets, both AD groups, test intern users (added to Interns Group), and the role assignments matching the role matrix. It also defines an offboard_user function used for the off boarding simulation (see below).
-Note: The provisioning script was verified end-to-end both locally and through automated CI/CD execution
-Running the off-boarding process
-The offboard_user function in deploy.sh checks a user's group memberships and role assignments, removes their role assignments, revokes their active sign-in sessions, and prints a final verification. To run it against a specific user, uncomment the example call at the bottom of the script or call it directly:
-Bash
-Source deploy.sh
-Offboard_user “someone@yourdomain.onmicrosoft.com”
-This offboarding function was executed against a simulated "departed engineer" test user to verify access revocation; before/after evidence is in screenshots/.
-Evidence (screenshots/)
-Each screenshot below documents the steps of the build or off boarding process;
-01-resource-group-created-1.png
-01-resource-group-created-2.png
-Resource group rg-verdantpay-iam successfully created
-02-vnet-subnets-created-3.png
-02-vnet-subnets-created-db-2.png
-02-vnet-subnets-created-web-1.png
-VNet vnet-verdantpay with Web and DB subnets created
-03-ad-groups-created-4.png
-03-ad-groups-created-dbadmin-2.png
-03-ad-groups-created-interns-3.png
-03-ad-groups-created-webadmin-1.png
-WebAdmins, Interns Group and DBAdmins Azure AD groups created
-04-role-assignments-matrix-db-reader-2.png
-04-role-assignments-matrix-interns-contributor-3.png
-04-role-asbsignments-maturix-web-conttributor-1.png
-Role assignments matching the Phase 0 role matrix (WebAdmins → Contributor, Interns Group → Contributor, DBAdmins → Reader)
-05-internuser1-created-1.png
-05-internuser2-created-2.png
-06-intern-access-validated-1.png
-06-intern-access-validated-2.png
-InternTestUser created and confirmed as a member of Interns Group, validating their access matches the role matrix
-07-departedengineer-created-1.png
-08-departedengineer-before-offboarding-2.png
-DepartedEngineer created and shown with Owner access on rg-verdantpay-iam, before off boarding
-09-departedengineer-role-removed.png
-Owner role assignment removed from DepartedEngineer
-10-departedengineer-sessions-revoked.png
-Active sign-in sessions revoked for DepartedEngineer, completing the offboarding process
-CI/CD pipeline
-.github/workflows/deploy.yml is configured to run deploy.sh automatically via GitHub Actions, authenticating to Azure with a service principal stored in the AZURE_CREDENTIALS repository secret. The pipeline executes successfully end-to-end, provisioning Azure resources, managing AD groups/membership, and applying RBAC role assignment. see Project4_Incident_Report.docx.for full details on the troubleshooting and resolution history.
-Teardown
-To remove everything created by this project:
-Bash
-az group delete - -name rg-verdantpay-iam - -yes - -no-wait
-This deletes the resource group and everything inside it (VNet, subnets). The Azure AD groups and test users are outside the resource group and must be removed separately if needed:
-Bash
-az ad group delete - -group WebAdmins
-az ad group delete - -group DBAdmins 
+CI/CD Pipeline (deploy.yml)
+The workflow automatically triggers on pushes to the main branch or via manual dispatch (workflow_dispatch). It authenticates via an Azure Service Principal stored in GitHub Secrets (AZURE_CREDENTIALS) and executes deploy.sh in a secure Ubuntu runner environment.
+Evidence & Verification
+All deployment checkpoints and offboarding validation steps have been captured and stored in the screenshots/ directory, including:
+Resource Group Creation: rg-verdantpay-iam successfully provisioned.
+VNet Subnets: snet-web and snet-db created with correct CIDR blocks.
+Azure AD Groups: WebAdmins, Interns, and DBAdmins established.
+Role Assignments: Scoped RBAC mappings verified against the role matrix.
+Offboarding Simulation: Execution of offboard_user successfully wiping group memberships, deleting direct role assignments, and disabling the account of the simulated departed engineer.
 Author
 Victory Etim Okpoyo 
 CLC/2026/TC-7/0122
  Cloud & DevOps Boot camp, Capstone Project 4 
+ 
