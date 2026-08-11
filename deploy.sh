@@ -130,6 +130,6 @@ offboard_user() {
 }
 
 # ==== Example test call (comment out if not testing right now) ====
-# offboard_user "departeduser@victoryokpoyooutlook.onmicrosoft.com"
+  offboard_user "departeduser@victoryokpoyooutlook.onmicrosoft.com"
 
 echo "Script finished."
