@@ -120,8 +120,13 @@ offboard_user() {
   echo "Revoking active sessions..."
   az ad user revoke-sign-in-sessions --id $USER_ID
 
+  echo "Disabliing Azure AD account..."
+  az ad user update --id $USER_ID --account-enabled false
+
   echo "Offboarding complete for $USER_UPN. Verify below:"
   az role assignment list --assignee $USER_ID -o table
+  echo "Account enabled status:"
+  az ad user show --id $USER_ID --query accountEnabled -o tsv
 }
 
 # ==== Example test call (comment out if not testing right now) ====
