@@ -97,6 +97,7 @@ echo "Deployment complete."
 
 # ==== Offboarding Function ====
 offboard_user() {
+  set +e
   USER_UPN=$1
   echo "Offboarding user: $USER_UPN"
 
@@ -128,6 +129,7 @@ fi
   az role assignment list --assignee $USER_ID -o table
   echo "Account enabled status:"
   az ad user show --id $USER_ID --query accountEnabled -o tsv
+    set -e
 }
 
 # ==== Example test call (comment out if not testing right now) ====
